@@ -3,120 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>匿名許願池 | 意見調查系統</title>
+    <title>匿名許願池 | 堆疊顯示系統</title>
     <style>
-        :root {
-            --bg-color: #0b0e14;
-            --card-bg: #151921;
-            --accent: #00d2ff;
-            --text: #ffffff;
-        }
-        body {
-            background-color: var(--bg-color);
-            color: var(--text);
-            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+        :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --pass: #238636; }
+        body { background: var(--bg); color: #c9d1d9; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: var(--card); padding: 2rem; border-radius: 12px; border: 1px solid #30363d; width: 90%; max-width: 450px; text-align: center; }
+        
+        /* 顯示面板：設定固定高度，超過則隱藏 */
+        #display-panel { 
+            height: 250px; /* 增加高度以容納更多願望 */
+            background: rgba(255,255,255,0.03); 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            padding: 10px;
+            overflow: hidden; /* 關鍵：放不下就隱藏 */
             display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
+            flex-direction: column-reverse; /* 讓新的願望排在最上面 */
+            gap: 10px;
         }
-        .container {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 15px var(--accent);
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-            z-index: 10;
+
+        .wish-card { 
+            padding: 10px; 
+            background: var(--pass); 
+            border-radius: 6px; 
+            font-size: 14px;
+            text-align: left;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            animation: slideIn 0.4s ease-out;
+            flex-shrink: 0; /* 防止卡片被壓縮 */
         }
-        h1 { font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--accent); }
-        select, textarea {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 1rem;
-            border-radius: 8px;
-            border: 1px solid #333;
-            background: #1e242e;
-            color: white;
-            box-sizing: border-box;
-        }
-        textarea { height: 120px; resize: none; }
-        button {
-            width: 100%;
-            padding: 12px;
-            background: transparent;
-            border: 2px solid var(--accent);
-            color: var(--accent);
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        button:hover {
-            background: var(--accent);
-            color: #000;
-            box-shadow: 0 0 20px var(--accent);
-        }
-        /* 簡單的背景裝飾 */
-        .stars {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
-            z-index: 1;
-        }
+
+        select, textarea { width: 100%; padding: 12px; margin-bottom: 1rem; border-radius: 6px; border: 1px solid #30363d; background: var(--bg); color: #fff; font-size: 16px; box-sizing: border-box; }
+        textarea { height: 80px; resize: none; }
+        button { width: 100%; padding: 12px; background: #238636; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        button:disabled { opacity: 0.5; }
+
+        @keyframes slideIn { from { transform: translateX(-10px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
 </head>
 <body>
-    <div class="stars"></div>
     <div class="container">
-        <h1>🌠 匿名許願池</h1>
-        <select id="category">
-            <option value="匿名許願">匿名許願</option>
-            <option value="功能建議">功能建議</option>
-            <option value="系統回報">系統回報</option>
-            <option value="其他心情">其他心情</option>
+        <h1>🌌 許願公佈欄</h1>
+        
+        <div id="display-panel">
+            <div id="loading">讀取中...</div>
+        </div>
+
+        <select id="cat">
+            <option value="匿名許願">🌠 匿名許願</option>
+            <option value="功能建議">💡 功能建議</option>
+            <option value="系統回報">🚫 系統回報</option>
         </select>
-        <textarea id="content" placeholder="在這裡寫下想法..."></textarea>
-        <button id="submitBtn" onclick="sendData()">投遞願望</button>
+        <textarea id="msg" placeholder="輸入你想說的話..."></textarea>
+        <button id="sendBtn" onclick="send()">投遞願望</button>
     </div>
 
     <script>
-        async function sendData() {
-            const btn = document.getElementById('submitBtn');
-            const category = document.getElementById('category').value;
-            const content = document.getElementById('content').value;
-            
-            // 替換為使用者的 GAS 網址
-            const api = "https://script.google.com/macros/s/AKfycbxNleKd_QY-8hugMhmEy8BcxjRbx78DqcMqVVSvK3WdEeEq9HQMu7v-nduYc3mGFUvl/exec";
+        const api = "https://script.google.com/macros/s/AKfycbwmAOgidgR2AqVU5qQrybGQegbs-avGJG_yj2ivxw-APzgX776HY_UvYUQHgmG4V4yF/exec";
 
-            if (!content.trim()) {
-                alert("內容不能為空喔！");
-                return;
+        window.onload = loadWishes;
+
+        async function loadWishes() {
+            try {
+                const res = await fetch(api);
+                const data = await res.json();
+                const panel = document.getElementById('display-panel');
+                panel.innerHTML = ""; // 清空讀取中文字
+
+                if (data.length > 0) {
+                    // 倒序排列，讓最新的出現在最上方
+                    data.reverse().forEach(wish => {
+                        const card = document.createElement('div');
+                        card.className = 'wish-card';
+                        card.innerHTML = `<strong>${wish.category}</strong>: ${wish.content}`;
+                        panel.appendChild(card);
+                    });
+                } else {
+                    panel.innerHTML = "<div style='margin:auto'>尚無通過審核的願望</div>";
+                }
+            } catch (e) { 
+                document.getElementById('display-panel').innerHTML = "連線失敗"; 
             }
+        }
+
+        async function send() {
+            const btn = document.getElementById('sendBtn');
+            const category = document.getElementById('cat').value;
+            const content = document.getElementById('msg').value;
+
+            if (!content.trim()) return alert("內容不能為空喔！");
 
             btn.disabled = true;
             btn.innerText = "傳送中...";
 
             try {
-                await fetch(api, {
-                    method: 'POST',
-                    mode: 'no-cors', // GAS 跨網域處理
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ category, content })
-                });
-
-                alert("願望已傳送到星空（狀態：待處理）！");
-                document.getElementById('content').value = "";
-            } catch (error) {
-                alert("傳送失敗，請稍後再試。");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "投遞願望";
-            }
+                await fetch(api, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ category, content }) });
+                alert("願望已排入待處理清單！");
+                document.getElementById('msg').value = "";
+            } catch (e) { alert("傳送失敗"); }
+            btn.disabled = false;
+            btn.innerText = "投遞願望";
         }
     </script>
 </body>
