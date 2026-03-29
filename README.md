@@ -1,56 +1,24 @@
-# 🌌 匿名許願池系統 (Anonymous Wish Pool)
+# 🌠 夜空許願池 (Starry Wish Wall)
 
-這是一個基於 **GitHub Pages** 前端介面，結合 **Google Apps Script (GAS)** 後端處理，並使用 **Google Sheets** 作為資料庫的輕量化匿名投稿系統。
+這是一個基於 **Google Apps Script (GAS)** 與 **GitHub Pages** 構建的高級匿名投稿系統。本專案特別優化了中文字體顯示與毛玻璃視覺特效，打造極致的互動體驗。
 
----
+## ✒️ 字體與視覺設計 (Typography & Design)
+本專案全面導入 **Google Fonts - Noto Sans TC (思源黑體)**，確保在 Windows、Mac 與行動裝置上均能保持一致且美觀的字型外觀：
 
-## 🚀 核心功能
-* **匿名投稿**：使用者無需登入即可投遞願望或建議。
-* **自動化資料庫**：投稿即時寫入 Google 試算表，包含時間戳記與分類。
-* **審核機制**：投稿預設狀態為 `待處理`，確保內容品質。
-* **即時通知**：透過 Discord Webhook，管理員可在第一時間收到新投稿提醒。
-* **介面美化**：暗色系視覺設計，並針對行動裝置優化字體大小。
+* **全域字體**：採用 `Noto Sans TC`，設定 `400` (常規) 與 `700` (粗體) 權重。
+* **霓虹特效**：標題與重點文字搭配 `text-shadow` 產生青色發光感。
+* **修復下拉選單**：解決原生選單在不同裝置上字體偏移（破圖）的問題，改採自定義圖文組件。
 
----
+## ✨ 核心功能
+* **全螢幕初始化加載 (Loading)**：進入網頁時會先看到「連結星空中」的動畫，待資料讀取完畢才進入主畫面。
+* **雙欄佈局 (Dual-Column)**：左側為留言顯示區，右側為投稿表單，完美適配大螢幕顯示。
+* **毛玻璃成功彈窗**：投稿成功後，於畫面正中央跳出高透明度、景深模糊的提示視窗。
+* **自定義圖文選單**：支援 Emoji 與文字並排，且解決了邊框跑出的問題。
 
-## 🛠️ 技術棧 (Tech Stack)
-* **Frontend**: HTML5, CSS3 (包含行動裝置字體優化), JavaScript (Fetch API)
-* **Backend**: Google Apps Script (GAS)
-* **Database**: Google Sheets
-* **Integration**: Discord Webhook API
+## 🛠️ 技術架構
+* **前端**：HTML5, CSS3 (Google Fonts 整合), JavaScript (Fetch API)。
+* **後端**：Google Apps Script。
+* **資料庫**：Google Sheets (分頁名：`SurveyData`)。
 
----
-
-## 📖 部署指南 (全部步驟)
-
-### 1. Google 試算表設定
-1. 建立新的 Google 試算表，將工作表命名為 `SurveyData`。
-2. 標題列設定：`A1:時間戳記`、`B1:許願類別`、`C1:內容`、`D1:狀態`。
-
-### 2. 後端腳本部署 (GAS)
-1. 在試算表中點擊「擴充功能」 > 「Apps Script」。
-2. 貼入 `code.gs` 程式碼並更換 Discord Webhook 網址。
-3. 點擊 **「部署」 > 「新部署」**：
-   * **類型**：網頁應用程式
-   * **誰有權限存取**：**任何人 (Anyone)**
-4. 複製產生的 `.exec` 網址。
-
-### 3. 前端網頁部署 (GitHub Pages)
-1. 將 `index.html` 上傳至 GitHub。
-2. 修改 `index.html` 中的 `const api` 變數，填入 GAS 網址。
-3. 在 GitHub 儲存庫的 **Settings > Pages** 開啟網頁託管。
-
----
-
-## 🎨 介面調整建議 (字體與視覺)
-
-為了確保在不同裝置上的閱讀體驗，建議在 CSS 中維持以下設定：
-* **標題 (h1)**：建議 `2rem` (約 32px)，醒目且具引導性。
-* **內容區域 (select, textarea)**：建議 **至少 `16px`**，防止 iOS 裝置在輸入時自動縮放畫面。
-* **按鈕 (button)**：建議 `1.1rem` (約 18px)，增加點擊區域的直覺性。
-
----
-
-
-## 📝 授權協議
-本專案採用 MIT 授權協議。
+## 🔄 維護作業 (SOP)
+* **資料審核**：投稿預設為「待處理」，管理員需手動在試算表將狀態改為 **「已通過」** 網頁才會顯示。
