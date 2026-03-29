@@ -1,332 +1,62 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>夜空許願池 | 完全整合高級介面</title>
-    <style>
-        :root {
-            --bg: #030509;
-            --main-card-bg: rgba(13, 17, 23, 0.7);
-            --glass: rgba(255, 255, 255, 0.1);
-            --border: rgba(255, 255, 255, 0.1);
-            --accent: #00f2fe;
-            --accent-glow: rgba(0, 242, 254, 0.3);
-            --pass: #2ea043;
-            --text-primary: #f0f6fc;
-            --text-secondary: #8b949e;
-        }
-
-        body {
-            background-color: var(--bg);
-            /* 星空背景 */
-            background-image: radial-gradient(white, rgba(255,255,255,.1) 1px, transparent 1px);
-            background-size: 50px 50px;
-            color: var(--text-primary);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden;
-        }
-
-        /* --- 1. 全螢幕初始化加載頁面 (保留功能) --- */
-        #loader-wrapper {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 9999; transition: opacity 0.5s;
-        }
-        .spinner {
-            width: 50px; height: 50px; border: 5px solid var(--glass);
-            border-top: 5px solid var(--accent); border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* --- 2. 成功提示置中毛玻璃彈窗 (保留功能) --- */
-        #success-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6); /* 半透明背景 */
-            display: none; justify-content: center; align-items: center;
-            z-index: 1000; backdrop-filter: blur(5px); /* 景深模糊 */
-        }
-        .glass-alert {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px); /* 強力毛玻璃 */
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 40px; border-radius: 24px;
-            text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            transform: scale(0.8); animation: popIn 0.3s forwards;
-            max-width: 300px;
-        }
-        @keyframes popIn { to { transform: scale(1); } }
-        .close-btn { 
-            width: auto; padding: 10px 30px; margin-top: 20px; 
-            background: var(--pass); border: none; color: #fff; 
-            border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s;
-        }
-        .close-btn:hover { background: #2ea043; box-shadow: 0 0 15px var(--pass); }
-
-        /* --- 3. 雙欄主介面佈局 (保留全部功能) --- */
-        .wrapper {
-            display: flex; gap: 2rem; width: 90%; max-width: 1000px; height: 500px; z-index: 10;
-        }
-        .display-section, .form-section {
-            background: var(--main-card-bg); backdrop-filter: blur(10px);
-            border-radius: 20px; border: 1px solid var(--border); padding: 25px;
-            display: flex; flex-direction: column; overflow: hidden;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-        .display-section { flex: 1.2; }
-        .form-section { flex: 0.8; }
-
-        #wish-stream { flex: 1; display: flex; flex-direction: column-reverse; gap: 10px; justify-content: flex-end; }
-        .wish-card { padding: 12px; background: rgba(46, 160, 67, 0.1); border-left: 3px solid var(--pass); border-radius: 8px; font-size: 14px; animation: wishFadeIn 0.4s; }
-        @keyframes wishFadeIn { from { opacity: 0; transform: translateY(10px); } }
-
-        /* 分割線 */
-        .divider { border: 0; height: 1px; background: linear-gradient(to right, transparent, var(--border), transparent); margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-secondary); }
-
-        /* --- 自定義圖文選單樣式 (修復版保留) --- */
-        .custom-dropdown { position: relative; width: 100%; margin-bottom: 1rem; }
-        .dropdown-selected {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px; border-radius: 8px; border: 1px solid var(--border);
-            background: rgba(0,0,0,0.3); color: #fff; cursor: pointer; transition: 0.2s; font-size: 16px;
-        }
-        .dropdown-selected:hover { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
-        .dropdown-selected::after { content: '▼'; font-size: 10px; color: var(--text-secondary); }
-
-        .dropdown-options {
-            display: none; position: absolute; top: calc(100% + 5px); left: 0;
-            width: 100%; background: #0b0e14; border: 1px solid var(--border);
-            border-radius: 8px; overflow: hidden; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-        }
-        .dropdown-options.active { display: block; animation: slideIn 0.2s ease-out; }
-        .dropdown-option { display: flex; align-items: center; padding: 12px; cursor: pointer; color: #fff; transition: background 0.2s; }
-        .dropdown-option:hover { background: rgba(255,255,255,0.05); }
-        .dropdown-option strong { margin-left: 10px; font-size: 15px; }
-
-        @keyframes slideIn { from { transform: translateY(-10px); opacity: 0; } }
-
-        /* 輸入框與按鈕 */
-        textarea {
-            width: 100%; padding: 12px; margin-bottom: 1rem; border-radius: 8px;
-            border: 1px solid var(--border); background: rgba(0,0,0,0.3);
-            color: #fff; font-size: 16px; box-sizing: border-box; resize: none; height: 120px;
-        }
-        textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
-
-        button#sendBtn {
-            padding: 15px; background: transparent; color: var(--accent);
-            border: 2px solid var(--accent); border-radius: 10px;
-            font-weight: bold; text-transform: uppercase; letter-spacing: 2px;
-            cursor: pointer; transition: 0.3s; margin-top: auto;
-        }
-        button#sendBtn:hover { background: var(--accent); color: #000; box-shadow: 0 0 20px var(--accent); }
-        button#sendBtn:disabled { opacity: 0.4; cursor: not-allowed; }
-    </style>
-</head>
-<body>
-
-    <div id="loader-wrapper">
-        <div class="spinner"></div>
-        <p style="margin-top: 20px; color: var(--accent); letter-spacing: 2px;">連結星空中...</p>
-    </div>
-
-    <div id="success-modal">
-        <div class="glass-alert">
-            <div style="font-size: 50px; margin-bottom: 20px;">✨</div>
-            <h2 style="margin: 0; color: #fff; text-shadow: 0 0 10px var(--accent);">投遞成功</h2>
-            <p style="color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">願望已送入星空！管理員審核後將會公開顯示在旁邊。</p>
-            <button onclick="closeModal()" class="close-btn">確定</button>
-        </div>
-    </div>
-
-    <div class="wrapper">
-        <div class="display-section">
-            <h2 style="color: #fff; text-shadow: 0 0 10px var(--accent); margin-top: 0;">🌠 許願公佈欄 (已通過)</h2>
-            <div class="divider"></div>
-            <div id="wish-stream">載入星空中...</div>
-        </div>
-
-        <div class="form-section">
-            <h2 style="text-align: center; color: #fff; margin-top: 0;">匿名投稿</h2>
-            <div class="divider"></div>
-
-            <label>選擇分類 (點擊展開)</label>
-            <div class="custom-dropdown">
-                <div class="dropdown-selected" id="dropdownSelected">
-                    <span>🌠 匿名許願</span>
-                </div>
-                <div class="dropdown-options" id="dropdownOptions">
-                    <div class="dropdown-option" data-value="匿名許願">
-                        🌠 <strong>匿名許願</strong>
-                    </div>
-                    <div class="dropdown-option" data-value="功能建議">
-                        💡 <strong>功能建議</strong>
-                    </div>
-                    <div class="dropdown-option" data-value="系統回報">
-                        🚫 <strong>系統回報</strong>
-                    </div>
-                </div>
-                <input type="hidden" id="categoryVal" value="匿名許願">
-            </div>
-
-            <label>傳達你的想法</label>
-            <textarea id="msg" placeholder="在此寫下留言內容..."></textarea>
-            
-            <button id="sendBtn" onclick="send()">投遞願望</button>
-        </div>
-        <div class="online-indicator">
-  <span class="blink-dot"></span>
-  <span class="status-text">網站不想在線😭</span>
+<div class="maintenance-overlay">
+  <div class="maintenance-content">
+    <div class="maintenance-icon">🛠️</div>
+    <h1>系統維護中</h1>
+    <p>使用者您好，為了提供更好的服務，網站目前正在進行例行性維護。</p>
+    <p>預計將於 <span class="highlight">5分鐘</span> 恢復運作，敬請見諒。</p>
+    <div class="loader"></div>
+  </div>
 </div>
 
 <style>
-  .online-indicator {
+  /* 全螢幕背景設定 */
+  .maintenance-overlay {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 8px 16px;
-    border-radius: 50px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    font-family: sans-serif;
-    font-size: 14px;
-    color: #333;
-    z-index: 9999;
-    border: 1px solid #eee;
-  }
-
-  .blink-dot {
-    height: 10px;
-    width: 10px;
-    background-color: #2ecc71;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 8px;
-    position: relative;
-  }
-
-  /* 呼吸燈動畫效果 */
-  .blink-dot::after {
-    content: "";
-    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    background-color: #2ecc71;
-    border-radius: 50%;
-    z-index: -1;
-    animation: pulse 2s infinite;
+    background-color: #000000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000; /* 確保在最上層 */
+    text-align: center;
+    font-family: "Microsoft JhengHei", sans-serif;
   }
 
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-      opacity: 0.8;
-    }
-    100% {
-      transform: scale(2.5);
-      opacity: 0;
-    }
+  .maintenance-content {
+    max-width: 500px;
+    padding: 40px;
+    border-radius: 15px;
   }
 
-  .status-text {
-    font-weight: 500;
+  .maintenance-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    color: #ffffff;
+    font-size: 28px;
+    margin-bottom: 15px;
+  }
+
+  p {
+    color: #ffffff;
+    line-height: 1.6;
+    margin: 10px 0;
+  }
+
+  .highlight {
+    color: #e67e22;
+    font-weight: bold;
+  }
+
+  /* 旋轉等待效果 */
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 </style>
-
-    </div>
-
-    <script>
-        // 替換為使用者的 GAS 網址 (務必是最新版本的 .exec)
-        const api = "https://script.google.com/macros/s/AKfycbyEL1V1gljJ7sUtAjIjqjalaUp8KOm_nlO1MM3HQIbD5UDmnff0RbPcvINWhD5WfNAp/exec";
-
-        // --- 1. 自定義下拉選單邏輯 (修復版保留) ---
-        const dropdown = document.querySelector('.custom-dropdown');
-        const selected = document.getElementById('dropdownSelected');
-        const optionsContainer = document.getElementById('dropdownOptions');
-        const hiddenInput = document.getElementById('categoryVal');
-
-        selected.addEventListener('click', (e) => {
-            e.stopPropagation(); // 防止冒泡
-            optionsContainer.classList.toggle('active');
-        });
-
-        document.querySelectorAll('.dropdown-option').forEach(option => {
-            option.addEventListener('click', function() {
-                const value = this.getAttribute('data-value');
-                const html = this.innerHTML; // 抓取圖文 HTML
-
-                hiddenInput.value = value; // 儲存真實值
-                selected.querySelector('span').innerHTML = html; // 更新顯示外觀
-                optionsContainer.classList.remove('active'); // 關閉下拉
-            });
-        });
-
-        // 點擊外部關閉選單
-        document.addEventListener('click', () => optionsContainer.classList.remove('active'));
-
-        // --- 2. 初始化加載邏輯 (保留功能) ---
-        window.onload = async () => {
-            await loadWishes();
-            // 資料讀取完畢後，淡出隱藏加載畫面
-            const loader = document.getElementById('loader-wrapper');
-            loader.style.opacity = '0';
-            setTimeout(() => loader.style.display = 'none', 500);
-        };
-
-        // --- 3. 原有功能邏輯維持 (保留全部功能) ---
-        async function loadWishes() {
-            const stream = document.getElementById('wish-stream');
-            try {
-                const res = await fetch(api);
-                const data = await res.json();
-                stream.innerHTML = ""; // 清空載入中
-
-                if (data.length > 0) {
-                    data.forEach(wish => {
-                        const card = document.createElement('div');
-                        card.className = 'wish-card';
-                        card.innerHTML = `<span style="color:var(--accent); font-weight:bold">${wish.category}</span>: ${wish.content}`;
-                        stream.appendChild(card);
-                    });
-                } else {
-                    stream.innerHTML = "<div style='margin:auto; color: var(--text-secondary);'>尚無審核通過的留言</div>";
-                }
-            } catch (e) { 
-                stream.innerHTML = "<div style='margin:auto; color: #ff6b6b;'>連線失敗</div>"; 
-            }
-        }
-
-        async function send() {
-            const btn = document.getElementById('sendBtn');
-            const content = document.getElementById('msg').value;
-
-            if (!content.trim()) return alert("留言內容不能為空喔！");
-
-            btn.disabled = true;
-            btn.innerText = "投遞中...";
-
-            try {
-                // 使用 POST 投稿 (保留全部功能)
-                await fetch(api, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ category: hiddenInput.value, content }) });
-                // 成功後顯示毛玻璃彈窗
-                showModal();
-                document.getElementById('msg').value = "";
-            } catch (e) { 
-                alert("連線失敗，請稍後再試。"); 
-            }
-            btn.disabled = false;
-            btn.innerText = "投遞願望";
-        }
-
-        // --- 4. 成功彈窗邏輯 (保留功能) ---
-        function showModal() { document.getElementById('success-modal').style.display = 'flex'; }
-        function closeModal() { document.getElementById('success-modal').style.display = 'none'; }
-        
-    </script>
-</body>
-</html>
