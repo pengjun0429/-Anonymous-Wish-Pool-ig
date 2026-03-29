@@ -3,86 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>匿名許願池 | 堆疊顯示系統</title>
+    <title>夜空許願池 | 匿名審核堆疊系統</title>
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --pass: #238636; }
-        body { background: var(--bg); color: #c9d1d9; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background: var(--card); padding: 2rem; border-radius: 12px; border: 1px solid #30363d; width: 90%; max-width: 450px; text-align: center; }
-        
-        /* 顯示面板：設定固定高度，超過則隱藏 */
-        #display-panel { 
-            height: 250px; /* 增加高度以容納更多願望 */
-            background: rgba(255,255,255,0.03); 
-            border-radius: 8px; 
-            margin-bottom: 20px; 
-            padding: 10px;
+        :root {
+            --bg: #030509;
+            --card-bg: rgba(21, 27, 38, 0.7);
+            --border: rgba(255, 255, 255, 0.08);
+            --accent: #00f2fe;
+            --accent-glow: #4facfe;
+            --pass: #2ea043;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 2px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 3px);
+            background-size: 550px 550px, 350px 350px, 250px 250px;
+            background-position: 0 0, 40px 60px, 130px 270px;
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* 流星動畫 */
+        @keyframes shootingStar {
+            from { transform: translateX(0) translateY(0) rotate(-45deg); opacity: 1; }
+            to { transform: translateX(-1000px) translateY(1000px) rotate(-45deg); opacity: 0; }
+        }
+        .star {
+            position: absolute;
+            width: 2px; height: 2px; background: #fff;
+            border-radius: 50%; box-shadow: 0 0 10px #fff, 0 0 20px #fff;
+            animation: shootingStar 3s linear infinite;
+            opacity: 0;
+        }
+        .star:nth-child(1) { top: 10%; right: 10%; animation-delay: 0s; }
+        .star:nth-child(2) { top: 30%; right: 20%; animation-delay: 1s; animation-duration: 2s; }
+        .star:nth-child(3) { top: 50%; right: 5%; animation-delay: 2s; }
+
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px); /* 毛玻璃效果 */
+            padding: 2.5rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 0 30px rgba(0, 242, 254, 0.15);
+            width: 90%;
+            max-width: 420px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 霓虹標題 */
+        h1 {
+            font-size: 2rem;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent-glow);
+            letter-spacing: 2px;
+        }
+
+        /* 堆疊顯示面板 */
+        #display-panel {
+            height: 280px; /* 固定高度 */
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+            padding: 15px;
             overflow: hidden; /* 關鍵：放不下就隱藏 */
             display: flex;
-            flex-direction: column-reverse; /* 讓新的願望排在最上面 */
-            gap: 10px;
+            flex-direction: column; /* 讓新的排在下面，舊的往上推 */
+            justify-content: flex-end; /* 內容靠底部排列 */
+            gap: 12px;
         }
 
-        .wish-card { 
-            padding: 10px; 
-            background: var(--pass); 
-            border-radius: 6px; 
+        .wish-card {
+            padding: 12px 15px;
+            background: rgba(46, 160, 67, 0.15);
+            border-left: 3px solid var(--pass);
+            border-radius: 6px;
             font-size: 14px;
+            line-height: 1.5;
+            color: #e6edf3;
             text-align: left;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            animation: slideIn 0.4s ease-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            animation: wishFadeIn 0.5s ease-out;
             flex-shrink: 0; /* 防止卡片被壓縮 */
         }
+        .wish-cat { color: var(--accent); font-weight: bold; margin-right: 8px; }
 
-        select, textarea { width: 100%; padding: 12px; margin-bottom: 1rem; border-radius: 6px; border: 1px solid #30363d; background: var(--bg); color: #fff; font-size: 16px; box-sizing: border-box; }
-        textarea { height: 80px; resize: none; }
-        button { width: 100%; padding: 12px; background: #238636; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        button:disabled { opacity: 0.5; }
+        @keyframes wishFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-        @keyframes slideIn { from { transform: translateX(-10px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        /* 分割線 */
+        .divider {
+            border: 0; height: 1px;
+            background: linear-gradient(to right, transparent, var(--border), transparent);
+            margin-bottom: 2rem;
+        }
+
+        /* 表單元件 */
+        label { display: block; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-secondary); }
+        
+        select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 1.2rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(0,0,0,0.2);
+            color: #fff;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+        }
+        textarea { height: 90px; resize: none; }
+
+        /* 霓虹按鈕 */
+        button {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            color: var(--accent);
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        button:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 20px var(--accent), 0 0 40px var(--accent-glow);
+        }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+
     </style>
 </head>
 <body>
+    <div class="star"></div><div class="star"></div><div class="star"></div>
+    
     <div class="container">
-        <h1>🌌 許願公佈欄</h1>
+        <h1>🌠 許願公佈欄</h1>
         
         <div id="display-panel">
-            <div id="loading">讀取中...</div>
+            <div style="margin: auto; color: var(--text-secondary); font-size: 0.9rem;">載入星空願望中...</div>
         </div>
 
+        <div class="divider"></div>
+
+        <label for="cat">選擇分類</label>
         <select id="cat">
             <option value="匿名許願">🌠 匿名許願</option>
             <option value="功能建議">💡 功能建議</option>
             <option value="系統回報">🚫 系統回報</option>
         </select>
-        <textarea id="msg" placeholder="輸入你想說的話..."></textarea>
+
+        <label for="msg">傳達想法</label>
+        <textarea id="msg" placeholder="在此寫下你的想法..."></textarea>
+        
         <button id="sendBtn" onclick="send()">投遞願望</button>
     </div>
 
     <script>
-        const api = "https://script.google.com/macros/s/AKfycbwmAOgidgR2AqVU5qQrybGQegbs-avGJG_yj2ivxw-APzgX776HY_UvYUQHgmG4V4yF/exec";
+        // 替換為使用者的 GAS 網址
+        const api = "https://script.google.com/macros/s/AKfycbxAnUIbqdJk41Vrt59IS_Cz03d3qICgij0ToZ9AV24pwMxmkM9uYKR2r72lyTDMT-H_/exec";
 
         window.onload = loadWishes;
 
         async function loadWishes() {
+            const panel = document.getElementById('display-panel');
             try {
                 const res = await fetch(api);
                 const data = await res.json();
-                const panel = document.getElementById('display-panel');
-                panel.innerHTML = ""; // 清空讀取中文字
+                panel.innerHTML = ""; // 清空載入中文字
 
                 if (data.length > 0) {
-                    // 倒序排列，讓最新的出現在最上方
-                    data.reverse().forEach(wish => {
+                    // 為了讓新的排在下面，舊的往上推，我們不 reverse，直接由舊到新 append
+                    data.forEach(wish => {
                         const card = document.createElement('div');
                         card.className = 'wish-card';
-                        card.innerHTML = `<strong>${wish.category}</strong>: ${wish.content}`;
+                        card.innerHTML = `<span class="wish-cat">${wish.category}</span>${wish.content}`;
                         panel.appendChild(card);
                     });
                 } else {
-                    panel.innerHTML = "<div style='margin:auto'>尚無通過審核的願望</div>";
+                    panel.innerHTML = "<div style='margin:auto; color: var(--text-secondary);'>尚無通過審核的願望</div>";
                 }
             } catch (e) { 
-                document.getElementById('display-panel').innerHTML = "連線失敗"; 
+                panel.innerHTML = "<div style='margin:auto; color: #ff6b6b;'>連線失敗</div>"; 
             }
         }
 
@@ -97,10 +229,13 @@
             btn.innerText = "傳送中...";
 
             try {
+                // 使用 POST 投稿
                 await fetch(api, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ category, content }) });
-                alert("願望已排入待處理清單！");
+                alert("願望已排入待處理清單！管理員審核後將會公開顯示。");
                 document.getElementById('msg').value = "";
-            } catch (e) { alert("傳送失敗"); }
+            } catch (e) { 
+                alert("傳送失敗，請稍後再試。"); 
+            }
             btn.disabled = false;
             btn.innerText = "投遞願望";
         }
