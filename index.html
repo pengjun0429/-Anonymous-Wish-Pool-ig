@@ -48,53 +48,49 @@
             text-align: center; width: 80%; max-width: 300px;
         }
 
-        /* --- 2. 核心佈局 (左右對調 & 縮減空格) --- */
+        /* --- 2. 核心佈局 --- */
         .wrapper { 
             display: flex; 
-            gap: 12px; /* 縮減兩欄之間的空格 */
+            gap: 12px; 
             width: 96%; 
             max-width: 1200px; 
-            height: 90vh; /* 增加高度利用率 */
+            height: 90vh; 
         }
 
         .display-section, .form-section {
             background: var(--main-card-bg); backdrop-filter: blur(15px);
             border-radius: 16px; border: 1px solid var(--border); 
-            padding: 15px; /* 縮減內部邊距 */
+            padding: 15px; 
             display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* 左邊：公佈欄 (1.4 比例) */
         .display-section { flex: 1.4; order: 1; }
-        /* 右邊：投稿區 (0.6 比例) */
         .form-section { flex: 0.6; order: 2; }
 
-        /* 手機版適配 */
         @media (max-width: 768px) {
             body { overflow: auto; align-items: flex-start; padding: 10px 0; }
             .wrapper { flex-direction: column; height: auto; gap: 10px; }
             .display-section, .form-section { width: 100%; height: auto; min-height: 350px; }
-            .form-section { order: 1; } /* 手機上投稿區排第一 */
+            .form-section { order: 1; }
             .display-section { order: 2; height: 500px; }
         }
 
-        /* --- 3. 留言卡片 (緊湊設計) --- */
+        /* --- 3. 留言卡片 --- */
         #wish-stream { 
             flex: 1; display: flex; flex-direction: column; 
-            gap: 8px; /* 縮減卡片之間的間距 */
+            gap: 8px; 
             overflow-y: auto; padding-right: 5px;
         }
         #wish-stream::-webkit-scrollbar { width: 4px; }
         #wish-stream::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-
+        
         .wish-card { 
-            padding: 12px; /* 縮減卡片內距 */
+            padding: 12px; 
             background: rgba(255, 255, 255, 0.04); 
             border-left: 3px solid var(--pass); border-radius: 10px; 
             font-size: 14px; flex-shrink: 0; line-height: 1.5;
         }
 
-        /* 管理員回應小框 (緊湊) */
         .reply-box {
             margin-top: 8px; padding: 8px 10px; 
             background: rgba(255,255,255,0.06); 
@@ -127,6 +123,17 @@
             cursor: pointer; transition: 0.2s; font-size: 14px;
         }
         button#sendBtn:active { background: var(--accent); color: #000; }
+
+        /* --- 5. 版權資訊 (僅新增此區塊樣式) --- */
+        .footer { 
+            margin-top: auto; 
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            font-size: 11px; 
+            color: var(--text-secondary); 
+            text-align: center;
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
@@ -160,6 +167,11 @@
             </div>
             <textarea id="msg" placeholder="請輸入你想說的話..."></textarea>
             <button id="sendBtn" onclick="send()">投遞願望</button>
+
+            <div class="footer">
+                &copy; 2026 -Anonymous-Wish-Pool-<br>
+                由 陳芃均 進行維護
+            </div>
         </div>
     </div>
 
@@ -191,20 +203,15 @@
                 const res = await fetch(api + "?t=" + new Date().getTime());
                 let data = await res.json();
                 stream.innerHTML = "";
-                
                 if (data.length === 0) {
                     stream.innerHTML = "<p style='color:var(--text-secondary); text-align:center; font-size: 13px;'>暫無審核通過的留言</p>";
                     return;
                 }
-
-                // 最新優先
                 data.reverse();
-
                 data.forEach(w => {
                     const card = document.createElement('div');
                     card.className = 'wish-card';
                     let html = `<b style="color:var(--accent)">${w.category}</b>：${w.content}`;
-                    
                     if (w.reply && w.reply.trim() !== "") {
                         html += `
                             <div class="reply-box">
@@ -223,7 +230,6 @@
             const btn = document.getElementById('sendBtn');
             const msg = document.getElementById('msg').value;
             if(!msg.trim()) return alert("內容不能為空");
-
             btn.disabled = true;
             btn.innerText = "投遞中...";
             try {
@@ -237,7 +243,6 @@
             btn.disabled = false;
             btn.innerText = "投遞願望";
         }
-
         function closeModal() { document.getElementById('success-modal').style.display = 'none'; }
     </script>
 </body>
