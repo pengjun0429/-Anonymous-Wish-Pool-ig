@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>夜空許願池 | 穩定修正版</title>
+    <title>夜空許願池 | 完整版</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -13,7 +13,7 @@
             --border: rgba(255, 255, 255, 0.1);
             --accent: #00f2fe;
             --pass: #2ea043;
-            --error: #ff4d4d;
+            --error: #ff4d4d; /* 新增錯誤紅 */
             --text-primary: #f0f6fc;
             --text-secondary: #8b949e;
         }
@@ -38,6 +38,7 @@
         .spinner { width: 35px; height: 35px; border: 3px solid var(--glass); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* 通用彈窗樣式 */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.8); display: none; 
@@ -59,21 +60,19 @@
         .display-section { flex: 1.4; order: 1; }
         .form-section { flex: 0.6; order: 2; }
 
-        /* 修正手機版高度消失的問題 */
         @media (max-width: 768px) {
-            body { overflow: auto; align-items: flex-start; padding: 20px 0; }
-            .wrapper { flex-direction: column; height: auto; gap: 15px; }
-            .display-section, .form-section { width: 100%; height: auto; flex: none; }
+            body { overflow: auto; align-items: flex-start; padding: 10px 0; }
+            .wrapper { flex-direction: column; height: auto; gap: 10px; }
             .form-section { order: 1; }
-            .display-section { order: 2; min-height: 450px; } /* 給予最小高度確保顯示 */
+            .display-section { order: 2; height: 500px; }
         }
 
         /* --- 3. 留言卡片 --- */
-        #wish-stream { flex: 1; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding-right: 5px; min-height: 200px; }
+        #wish-stream { flex: 1; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding-right: 5px; }
         .wish-card { 
             padding: 12px; background: rgba(255, 255, 255, 0.04); 
             border-left: 3px solid var(--pass); border-radius: 10px; 
-            font-size: 14px; line-height: 1.5; flex-shrink: 0;
+            font-size: 14px; line-height: 1.5;
         }
         .reply-box {
             margin-top: 8px; padding: 8px 10px; background: rgba(255,255,255,0.06); 
@@ -86,6 +85,28 @@
             padding: 10px; border-radius: 8px; border: 1px solid var(--border);
             background: rgba(0,0,0,0.5); cursor: pointer; display: flex; justify-content: space-between; font-size: 14px;
         }
+        /* 新增箭頭圖示 */
+        /* 新增箭頭圖示 */
+.dropdown-selected::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid var(--text-secondary); /* 箭頭顏色 */
+    transition: transform 0.3s ease;
+    align-self: center;
+}
+
+/* 當選單開啟時，旋轉箭頭 */
+.custom-dropdown:has(.dropdown-options.active) .dropdown-selected::after {
+    transform: rotate(180deg);
+}
+
+/* 當選單開啟時，旋轉箭頭 */
+.custom-dropdown:has(.dropdown-options.active) .dropdown-selected::after {
+    transform: rotate(180deg);
+}
         .dropdown-options {
             display: none; position: absolute; top: 110%; width: 100%;
             background: #1c2128; border: 1px solid var(--border); border-radius: 8px; z-index: 100;
@@ -101,17 +122,17 @@
         button#sendBtn {
             padding: 12px; background: transparent; color: var(--accent);
             border: 2px solid var(--accent); border-radius: 10px; font-weight: bold;
-            cursor: pointer; font-size: 14px; width: 100%;
+            cursor: pointer; font-size: 14px;
         }
         .footer { 
-            margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border);
+            margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border);
             font-size: 11px; color: var(--text-secondary); text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <div id="loader-wrapper"><div class="spinner"></div></div>
+    <div id="loader-wrapper"><div class="spinner"></div><p style="color:var(--accent); font-size: 14px; margin-top: 10px;">同步星空中...</p></div>
 
     <div id="success-modal" class="modal-overlay">
         <div class="glass-alert">
@@ -130,6 +151,11 @@
     </div>
 
     <div class="wrapper">
+        <div class="display-section">
+            <h3 style="margin: 0 0 12px 0; color: var(--accent); font-size: 1.2rem;">🌠 許願公佈欄</h3>
+            <div id="wish-stream">載入中...</div>
+        </div>
+
         <div class="form-section">
             <h3 style="text-align: center; margin: 0 0 12px 0; font-size: 1.2rem;">匿名投稿</h3>
             <div class="custom-dropdown">
@@ -144,14 +170,9 @@
             <textarea id="msg" placeholder="請輸入你想說的話..."></textarea>
             <button id="sendBtn" onclick="send()">投遞願望</button>
             <div class="footer">
-                &copy; 2026 -Anonymous-Wish-Pool-ig<br>
-                由 陳芃均 進行維護
+                &copy; 2026 Earthquake Monitor<br>
+                由 使用者 進行維護
             </div>
-        </div>
-
-        <div class="display-section">
-            <h3 style="margin: 0 0 12px 0; color: var(--accent); font-size: 1.2rem;">🌠 許願公佈欄</h3>
-            <div id="wish-stream">載入中...</div>
         </div>
     </div>
 
@@ -183,7 +204,7 @@
                 const res = await fetch(api + "?t=" + new Date().getTime());
                 let data = await res.json();
                 stream.innerHTML = "";
-                if (!data || data.length === 0) {
+                if (data.length === 0) {
                     stream.innerHTML = "<p style='color:var(--text-secondary); text-align:center; font-size: 13px;'>暫無留言</p>";
                     return;
                 }
@@ -203,11 +224,15 @@
         async function send() {
             const category = document.getElementById('catVal').value;
             const msg = document.getElementById('msg').value;
+
+            // 限制分類判斷
             if (category !== "匿名許願") {
                 document.getElementById('error-modal').style.display = 'flex';
                 return;
             }
+
             if(!msg.trim()) return;
+
             const btn = document.getElementById('sendBtn');
             btn.disabled = true;
             btn.innerText = "投遞中...";
