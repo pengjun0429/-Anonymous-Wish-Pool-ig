@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>夜空許願池 | 緊湊優化版</title>
+    <title>夜空許願池 | ig版</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -13,6 +13,7 @@
             --border: rgba(255, 255, 255, 0.1);
             --accent: #00f2fe;
             --pass: #2ea043;
+            --error: #ff4d4d; /* 新增錯誤紅 */
             --text-primary: #f0f6fc;
             --text-secondary: #8b949e;
         }
@@ -37,7 +38,8 @@
         .spinner { width: 35px; height: 35px; border: 3px solid var(--glass); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        #success-modal {
+        /* 通用彈窗樣式 */
+        .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.8); display: none; 
             justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(8px);
@@ -49,56 +51,35 @@
         }
 
         /* --- 2. 核心佈局 --- */
-        .wrapper { 
-            display: flex; 
-            gap: 12px; 
-            width: 96%; 
-            max-width: 1200px; 
-            height: 90vh; 
-        }
-
+        .wrapper { display: flex; gap: 12px; width: 96%; max-width: 1200px; height: 90vh; }
         .display-section, .form-section {
             background: var(--main-card-bg); backdrop-filter: blur(15px);
             border-radius: 16px; border: 1px solid var(--border); 
-            padding: 15px; 
-            display: flex; flex-direction: column; overflow: hidden;
+            padding: 15px; display: flex; flex-direction: column; overflow: hidden;
         }
-
         .display-section { flex: 1.4; order: 1; }
         .form-section { flex: 0.6; order: 2; }
 
         @media (max-width: 768px) {
             body { overflow: auto; align-items: flex-start; padding: 10px 0; }
             .wrapper { flex-direction: column; height: auto; gap: 10px; }
-            .display-section, .form-section { width: 100%; height: auto; min-height: 350px; }
             .form-section { order: 1; }
             .display-section { order: 2; height: 500px; }
         }
 
         /* --- 3. 留言卡片 --- */
-        #wish-stream { 
-            flex: 1; display: flex; flex-direction: column; 
-            gap: 8px; 
-            overflow-y: auto; padding-right: 5px;
-        }
-        #wish-stream::-webkit-scrollbar { width: 4px; }
-        #wish-stream::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-        
+        #wish-stream { flex: 1; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding-right: 5px; }
         .wish-card { 
-            padding: 12px; 
-            background: rgba(255, 255, 255, 0.04); 
+            padding: 12px; background: rgba(255, 255, 255, 0.04); 
             border-left: 3px solid var(--pass); border-radius: 10px; 
-            font-size: 14px; flex-shrink: 0; line-height: 1.5;
+            font-size: 14px; line-height: 1.5;
         }
-
         .reply-box {
-            margin-top: 8px; padding: 8px 10px; 
-            background: rgba(255,255,255,0.06); 
-            border-radius: 8px; border-left: 2px solid var(--accent); 
-            font-size: 13px;
+            margin-top: 8px; padding: 8px 10px; background: rgba(255,255,255,0.06); 
+            border-radius: 8px; border-left: 2px solid var(--accent); font-size: 13px;
         }
 
-        /* --- 4. 表單元件 --- */
+        /* --- 4. 表單與版權 --- */
         .custom-dropdown { position: relative; margin-bottom: 10px; }
         .dropdown-selected {
             padding: 10px; border-radius: 8px; border: 1px solid var(--border);
@@ -109,30 +90,21 @@
             background: #1c2128; border: 1px solid var(--border); border-radius: 8px; z-index: 100;
         }
         .dropdown-options.active { display: block; }
-        .dropdown-option { padding: 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
+        .dropdown-option { padding: 10px; border-bottom: 1px solid var(--border); font-size: 14px; cursor: pointer; }
 
         textarea {
             width: 100%; height: 100px; padding: 10px; border-radius: 8px;
             background: rgba(0,0,0,0.5); color: #fff; border: 1px solid var(--border);
             margin-bottom: 10px; resize: none; font-family: inherit; font-size: 15px;
         }
-
         button#sendBtn {
             padding: 12px; background: transparent; color: var(--accent);
             border: 2px solid var(--accent); border-radius: 10px; font-weight: bold;
-            cursor: pointer; transition: 0.2s; font-size: 14px;
+            cursor: pointer; font-size: 14px;
         }
-        button#sendBtn:active { background: var(--accent); color: #000; }
-
-        /* --- 5. 版權資訊 (僅新增此區塊樣式) --- */
         .footer { 
-            margin-top: auto; 
-            padding-top: 20px;
-            border-top: 1px solid var(--border);
-            font-size: 11px; 
-            color: var(--text-secondary); 
-            text-align: center;
-            line-height: 1.6;
+            margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border);
+            font-size: 11px; color: var(--text-secondary); text-align: center;
         }
     </style>
 </head>
@@ -140,11 +112,80 @@
 
     <div id="loader-wrapper"><div class="spinner"></div><p style="color:var(--accent); font-size: 14px; margin-top: 10px;">同步星空中...</p></div>
 
-    <div id="success-modal">
+    <div class="online-indicator">
+  <span class="blink-dot"></span>
+  <span class="status-text">網站在線中</span>
+</div>
+
+<style>
+  .online-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 8px 16px;
+    border-radius: 50px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    font-family: sans-serif;
+    font-size: 14px;
+    color: #333;
+    z-index: 9999;
+    border: 1px solid #eee;
+  }
+
+  .blink-dot {
+    height: 10px;
+    width: 10px;
+    background-color: #2ecc71;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    position: relative;
+  }
+
+  /* 呼吸燈動畫效果 */
+  .blink-dot::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: #2ecc71;
+    border-radius: 50%;
+    z-index: -1;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(2.5);
+      opacity: 0;
+    }
+  }
+
+  .status-text {
+    font-weight: 500;
+  }
+</style>
+
+    <div id="success-modal" class="modal-overlay">
         <div class="glass-alert">
             <h3 style="color: #fff; margin: 0 0 10px 0;">✨ 投遞成功</h3>
             <p style="color: var(--text-secondary); font-size: 13px;">審核通過後會即時顯示在左側！</p>
-            <button onclick="closeModal()" style="width:100%; padding: 8px; border-radius: 8px; background: var(--accent); border:none; color:#000; font-weight:bold; cursor:pointer;">確定</button>
+            <button onclick="closeModal('success-modal')" style="width:100%; padding: 8px; border-radius: 8px; background: var(--accent); border:none; color:#000; font-weight:bold; cursor:pointer;">確定</button>
+        </div>
+    </div>
+
+    <div id="error-modal" class="modal-overlay">
+        <div class="glass-alert" style="border-color: rgba(255, 77, 77, 0.3);">
+            <h3 style="color: var(--error); margin: 0 0 10px 0;">🚫 功能受限</h3>
+            <p style="color: var(--text-secondary); font-size: 13px;">此版本不適用此功能。</p>
+            <button onclick="closeModal('error-modal')" style="width:100%; padding: 8px; border-radius: 8px; background: var(--error); border:none; color:#fff; font-weight:bold; cursor:pointer;">返回</button>
         </div>
     </div>
 
@@ -167,10 +208,9 @@
             </div>
             <textarea id="msg" placeholder="請輸入你想說的話..."></textarea>
             <button id="sendBtn" onclick="send()">投遞願望</button>
-
             <div class="footer">
-                &copy; 2026 -Anonymous-Wish-Pool-<br>
-                由 陳芃均 進行維護
+                &copy; 2026 Earthquake Monitor<br>
+                由 使用者 進行維護
             </div>
         </div>
     </div>
@@ -204,46 +244,47 @@
                 let data = await res.json();
                 stream.innerHTML = "";
                 if (data.length === 0) {
-                    stream.innerHTML = "<p style='color:var(--text-secondary); text-align:center; font-size: 13px;'>暫無審核通過的留言</p>";
+                    stream.innerHTML = "<p style='color:var(--text-secondary); text-align:center; font-size: 13px;'>暫無留言</p>";
                     return;
                 }
                 data.reverse();
                 data.forEach(w => {
                     const card = document.createElement('div');
                     card.className = 'wish-card';
-                    let html = `<b style="color:var(--accent)">${w.category}</b>：${w.content}`;
+                    card.innerHTML = `<b style="color:var(--accent)">${w.category}</b>：${w.content}`;
                     if (w.reply && w.reply.trim() !== "") {
-                        html += `
-                            <div class="reply-box">
-                                <span style="color: var(--accent); font-weight: bold;">💬 管理員回應：</span><br>
-                                <span style="color: #ddd;">${w.reply}</span>
-                            </div>
-                        `;
+                        card.innerHTML += `<div class="reply-box"><span style="color: var(--accent); font-weight: bold;">💬 管理員回應：</span><br><span style="color: #ddd;">${w.reply}</span></div>`;
                     }
-                    card.innerHTML = html;
                     stream.appendChild(card);
                 });
             } catch (e) { stream.innerHTML = "讀取資料失敗"; }
         }
 
         async function send() {
-            const btn = document.getElementById('sendBtn');
+            const category = document.getElementById('catVal').value;
             const msg = document.getElementById('msg').value;
-            if(!msg.trim()) return alert("內容不能為空");
+
+            // 限制分類判斷
+            if (category !== "匿名許願") {
+                document.getElementById('error-modal').style.display = 'flex';
+                return;
+            }
+
+            if(!msg.trim()) return;
+
+            const btn = document.getElementById('sendBtn');
             btn.disabled = true;
             btn.innerText = "投遞中...";
             try {
-                await fetch(api, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ 
-                    category: document.getElementById('catVal').value, 
-                    content: msg 
-                })});
+                await fetch(api, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ category, content: msg })});
                 document.getElementById('success-modal').style.display = 'flex';
                 document.getElementById('msg').value = "";
             } catch (e) { alert("發送失敗"); }
             btn.disabled = false;
             btn.innerText = "投遞願望";
         }
-        function closeModal() { document.getElementById('success-modal').style.display = 'none'; }
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     </script>
 </body>
 </html>
