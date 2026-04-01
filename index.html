@@ -230,8 +230,8 @@
             <textarea id="msg" placeholder="請輸入你想說的話..."></textarea>
             <button id="sendBtn" onclick="send()">投遞願望</button>
             <div class="footer">
-                &copy; 2026 Earthquake Monitor<br>
-                由 使用者 進行維護
+                &copy; 2026 -Anonymous-Wish-Pool-ig<br>
+                由 陳芃均 進行維護
             </div>
         </div>
     </div>
@@ -239,67 +239,105 @@
     <script>
         const api = "https://script.google.com/macros/s/AKfycbwt1NghmTOfie8O_EZAT_XknAXPWruO5a1ldf5LGqEih0vGlQprtBqvtzvh2Gdo5xk0/exec"; 
 
-        const sel = document.getElementById('selected');
-        const opts = document.getElementById('options');
-        sel.onclick = (e) => { e.stopPropagation(); opts.classList.toggle('active'); };
-        document.querySelectorAll('.dropdown-option').forEach(o => {
-            o.onclick = () => {
-                sel.innerText = o.innerText;
-                document.getElementById('catVal').value = o.dataset.val;
-                opts.classList.remove('active');
-            }
-        });
-        document.onclick = () => opts.classList.remove('active');
+const sel = document.getElementById('selected');
+const opts = document.getElementById('options');
 
-        window.onload = async () => {
-            await loadWishes();
-            const loader = document.getElementById('loader-wrapper');
-            loader.style.opacity = '0';
-            setTimeout(() => loader.style.display = 'none', 500);
-        };
+// 解決手機點擊穿透與選單切換
+sel.addEventListener('click', (e) => {
+    e.stopPropagation();
+    opts.classList.toggle('active');
+});
 
-        async function loadWishes() {
-            const stream = document.getElementById('wish-stream');
-            try {
-                const res = await fetch(api + "?t=" + new Date().getTime());
-                let data = await res.json();
-                stream.innerHTML = "";
-                if (data.length === 0) {
-                    stream.innerHTML = "<p style='color:var(--text-secondary); text-align:center; font-size: 13px;'>暫無留言</p>";
-                    return;
-                }
-                data.reverse();
-                data.forEach(w => {
-                    const card = document.createElement('div');
-                    card.className = 'wish-card';
-                    card.innerHTML = `<b style="color:var(--accent)">${w.category}</b>：${w.content}`;
-                    if (w.reply && w.reply.trim() !== "") {
-                        card.innerHTML += `<div class="reply-box"><span style="color: var(--accent); font-weight: bold;">💬 管理員回應：</span><br><span style="color: #ddd;">${w.reply}</span></div>`;
-                    }
-                    stream.appendChild(card);
-                });
-            } catch (e) { stream.innerHTML = "讀取資料失敗"; }
+document.querySelectorAll('.dropdown-option').forEach(o => {
+    o.onclick = (e) => {
+        sel.innerText = o.innerText;
+        document.getElementById('catVal').value = o.dataset.val;
+        opts.classList.remove('active');
+        e.stopPropagation();
+    }
+});
+
+document.addEventListener('click', () => opts.classList.remove('active'));
+
+// 初始化
+window.addEventListener('DOMContentLoaded', async () => {
+    await loadWishes();
+    const loader = document.getElementById('loader-wrapper');
+    if(loader) {
+        loader.style.opacity = '0';
+        setTimeout(() => loader.style.display = 'none', 500);
+    }
+});
+
+async function loadWishes() {
+    const stream = document.getElementById('wish-stream');
+    try {
+        // 加入隨機數防止手機瀏覽器快取 (Cache)
+        const res = await fetch(`${api}?t=${Date.now()}`);
+        const data = await res.json();
+        
+        stream.innerHTML = "";
+        if (!data || data.length === 0) {
+            stream.innerHTML = "<p style='color:var(--text-secondary); text-align:center; font-size: 13px;'>目前星空中還沒有願望...</p>";
+            return;
         }
 
-        async function send() {
-            const category = document.getElementById('catVal').value;
-            const msg = document.getElementById('msg').value;
+        // 倒序排列（最新的在上面）
+        data.slice().reverse().forEach(w => {
+            const card = document.createElement('div');
+            card.className = 'wish-card';
+            let replyHtml = (w.reply && w.reply.trim() !== "") 
+                ? `<div class="reply-box"><span style="color: var(--accent); font-weight: bold;">💬 管理員回應：</span><br><span style="color: #ddd;">${w.reply}</span></div>` 
+                : "";
             
-            if(!msg.trim()) return;
+            card.innerHTML = `<b style="color:var(--accent)">${w.category}</b>：${w.content}${replyHtml}`;
+            stream.appendChild(card);
+        });
+    } catch (e) { 
+        stream.innerHTML = "<p style='text-align:center; color:var(--error);'>讀取資料失敗，請重新整理</p>";
+        console.error(e);
+    }
+}
 
-            const btn = document.getElementById('sendBtn');
-            btn.disabled = true;
-            btn.innerText = "投遞中...";
-            try {
-                await fetch(api, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ category, content: msg })});
-                document.getElementById('success-modal').style.display = 'flex';
-                document.getElementById('msg').value = "";
-            } catch (e) { alert("發送失敗"); }
-            btn.disabled = false;
-            btn.innerText = "投遞願望";
-        }
+async function send() {
+    const category = document.getElementById('catVal').value;
+    const msg = document.getElementById('msg').value;
+    const btn = document.getElementById('sendBtn');
+    
+    if(!msg.trim()) return;
 
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    btn.disabled = true;
+    btn.innerText = "投遞中...";
+
+    try {
+        // 使用 URLSearchParams 配合 Google Apps Script 的 doGet 處理，成功率最高
+        const params = new URLSearchParams({
+            category: category,
+            content: msg
+        });
+
+        // 嘗試發送
+        await fetch(`${api}?${params.toString()}`, { 
+            method: 'POST', 
+            mode: 'no-cors' 
+        });
+
+        // 因為 no-cors 無法判斷是否真的寫入成功，我們假設只要沒噴錯就是發送了
+        document.getElementById('success-modal').style.display = 'flex';
+        document.getElementById('msg').value = "";
+        
+        // 延遲兩秒後重新載入列表（等後端寫入）
+        setTimeout(loadWishes, 2000);
+
+    } catch (e) { 
+        alert("網路連線異常，請稍後再試"); 
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "投遞願望";
+    }
+}
+
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     </script>
 </body>
 </html>
